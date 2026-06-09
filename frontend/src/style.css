@@ -12,3 +12,8 @@ body {
   font-family: 'DM Sans', sans-serif;
   background-color: #FAF6F0;
 }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

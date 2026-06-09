@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import peopleRoutes from './routes/people';
+import reminderRoutes from './routes/reminders';
 
 dotenv.config();
 const app = express();
@@ -17,6 +18,7 @@ mongoose.connect(process.env.MONGO_URI || '')
 
 app.use('/api/auth', authRoutes);
 app.use('/api/people', peopleRoutes);
+app.use('/api/reminders', reminderRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Guldasta API running ' });
