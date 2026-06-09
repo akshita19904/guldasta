@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Mail, Lock, User, Leaf, Gift, Calendar, MessageCircle, Star } from 'lucide-react';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -29,118 +30,165 @@ export default function Register() {
     }
   };
 
+  const perks = [
+    { icon: <Calendar size={15} />, title: 'Smart reminders', desc: 'Never miss a birthday again' },
+    { icon: <Gift size={15} />, title: 'AI gift ideas', desc: 'Personalised for each person' },
+    { icon: <MessageCircle size={15} />, title: 'Heartfelt messages', desc: 'Written by AI, felt by heart' },
+    { icon: <Star size={15} />, title: 'Your circle', desc: 'All loved ones in one place' },
+  ];
+
+  const fields = [
+    { label: 'Full name', type: 'text', value: name, setter: setName, placeholder: 'Your full name', icon: <User size={16} /> },
+    { label: 'Email address', type: 'email', value: email, setter: setEmail, placeholder: 'you@example.com', icon: <Mail size={16} /> },
+    { label: 'Password', type: 'password', value: password, setter: setPassword, placeholder: 'Min. 6 characters', icon: <Lock size={16} /> },
+  ];
+
   return (
-    <div className="min-h-screen flex" style={{ background: 'linear-gradient(135deg, #FAF6F0 0%, #F2E8D9 50%, #EDD9B0 100%)' }}>
+    <div style={{ minHeight:'100vh', display:'flex', fontFamily:"'DM Sans', sans-serif", background:'#F7F4EF' }}>
 
-      {/* Left decorative panel */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 relative overflow-hidden"
-        style={{ background: 'linear-gradient(160deg, #B5C9A8 0%, #C4B5C9 50%, #E8A0A8 100%)' }}>
+      {/* Left Panel */}
+      <div style={{
+        width:'45%',
+        background:'linear-gradient(145deg, #1C3A18 0%, #2D5A27 30%, #4A7C3F 65%, #6B9E5E 100%)',
+        padding:'48px 44px',
+        display:'flex',
+        flexDirection:'column',
+        justifyContent:'center',
+        position:'relative',
+        overflow:'hidden',
+      }} className="hidden lg:flex">
 
-        <div className="absolute top-8 right-8 w-40 h-40 rounded-full opacity-20" style={{ background: '#FAF6F0' }}></div>
-        <div className="absolute bottom-20 left-8 w-32 h-32 rounded-full opacity-15" style={{ background: '#D4A96A' }}></div>
+        <div style={{ position:'absolute', width:220, height:220, borderRadius:'50%', background:'rgba(255,255,255,0.05)', top:-80, right:-60 }}></div>
+        <div style={{ position:'absolute', width:140, height:140, borderRadius:'50%', background:'rgba(212,185,120,0.15)', bottom:20, left:-40 }}></div>
 
-        <div className="relative z-10 text-center">
-          <div className="text-8xl mb-6">🌿</div>
-          <h2 className="text-4xl font-serif text-white mb-4">
-            Your circle of<br />
-            <span className="italic">loved ones</span>
-          </h2>
-          <p className="text-lg font-light max-w-xs mx-auto leading-relaxed"
-            style={{ color: 'rgba(255,255,255,0.85)' }}>
-            Keep track of the people who matter most and never forget what makes them feel special
+        <div style={{ position:'relative', zIndex:1 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:6 }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:'rgba(255,255,255,0.12)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Leaf size={20} color="white" />
+            </div>
+            <span style={{ fontFamily:"'Playfair Display', serif", fontSize:26, color:'white' }}>
+              Gul<em style={{ color:'#D4B978' }}>dasta</em>
+            </span>
+          </div>
+          <p style={{ fontSize:11, letterSpacing:2.5, textTransform:'uppercase', color:'rgba(255,255,255,0.45)', marginBottom:40 }}>
+            Relationship Assistant
           </p>
 
-          <div className="grid grid-cols-3 gap-3 mt-8 max-w-xs mx-auto">
-            {[
-              { emoji: '🎂', label: 'Birthdays' },
-              { emoji: '💍', label: 'Anniversaries' },
-              { emoji: '🎓', label: 'Milestones' },
-              { emoji: '🎁', label: 'Gift ideas' },
-              { emoji: '💌', label: 'Messages' },
-              { emoji: '✨', label: 'Celebrations' },
-            ].map((item, i) => (
-              <div key={i} className="rounded-2xl p-3 text-center"
-                style={{ background: 'rgba(255,255,255,0.2)' }}>
-                <div className="text-xl mb-1">{item.emoji}</div>
-                <div className="text-xs text-white" style={{ color: 'rgba(255,255,255,0.9)' }}>{item.label}</div>
+          <h2 style={{ fontFamily:"'Playfair Display', serif", fontSize:30, color:'white', lineHeight:1.35, marginBottom:12 }}>
+            Your circle of<br /><em>loved ones awaits</em>
+          </h2>
+          <p style={{ fontSize:13, color:'rgba(255,255,255,0.65)', lineHeight:1.7, marginBottom:40 }}>
+            Join thousands who never miss what matters most — birthdays, anniversaries, and all the moments in between.
+          </p>
+
+          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+            {perks.map((p, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'14px 16px', borderRadius:12, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ width:32, height:32, borderRadius:8, background:'rgba(212,185,120,0.25)', display:'flex', alignItems:'center', justifyContent:'center', color:'#D4B978', flexShrink:0 }}>
+                  {p.icon}
+                </div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:500, color:'white', marginBottom:2 }}>{p.title}</div>
+                  <div style={{ fontSize:12, color:'rgba(255,255,255,0.55)' }}>{p.desc}</div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Right register form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-md">
+      {/* Right Form Panel */}
+      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 24px' }}>
+        <div style={{ width:'100%', maxWidth:420 }}>
 
-          <div className="text-center mb-10">
-            <h1 className="text-5xl font-serif mb-2" style={{ color: '#3D2B1F' }}>
-              Gul<span className="italic" style={{ color: '#E8A0A8' }}>dasta</span>
-            </h1>
-            <p className="text-xs tracking-widest uppercase font-light" style={{ color: '#9B7B6B' }}>
-              Relationship Assistant
+          <div style={{ textAlign:'center', marginBottom:32 }}>
+            <div style={{ fontFamily:"'Playfair Display', serif", fontSize:34, color:'#1C3A18' }}>
+              Gul<em style={{ color:'#4A7C3F' }}>dasta</em>
+            </div>
+            <p style={{ fontSize:11, letterSpacing:2, textTransform:'uppercase', color:'#8A9E85', marginTop:4 }}>
+              Create your account
             </p>
-            <div className="flex justify-center gap-1 mt-3">
-              {['#E8A0A8', '#B5C9A8', '#C4B5C9', '#D4A96A'].map((c, i) => (
-                <div key={i} className="w-6 h-1 rounded-full" style={{ background: c }}></div>
+            <div style={{ display:'flex', justifyContent:'center', gap:6, marginTop:10 }}>
+              {['#2D5A27','#6B9E5E','#D4B978','#A8C5A0'].map((c,i) => (
+                <div key={i} style={{ width:20, height:3, borderRadius:2, background:c }}></div>
               ))}
             </div>
           </div>
 
-          <div className="rounded-3xl p-8 shadow-lg"
-            style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)', border: '1px solid rgba(232,160,168,0.2)' }}>
+          <h2 style={{ fontFamily:"'Playfair Display', serif", fontSize:24, color:'#1C3A18', marginBottom:4 }}>
+            Join Guldasta
+          </h2>
+          <p style={{ fontSize:13, color:'#7A8A75', marginBottom:24 }}>
+            Start celebrating the people you love
+          </p>
 
-            <h2 className="text-2xl font-serif mb-1" style={{ color: '#3D2B1F' }}>Create account</h2>
-            <p className="text-sm mb-6 font-light" style={{ color: '#9B7B6B' }}>
-              Start celebrating the people you love 🌸
-            </p>
+          {error && (
+            <div style={{ background:'#F0F7EE', border:'1px solid #B5CEB0', color:'#2D5A27', fontSize:13, padding:'12px 16px', borderRadius:12, marginBottom:20 }}>
+              {error}
+            </div>
+          )}
 
-            {error && (
-              <div className="text-sm px-4 py-3 rounded-2xl mb-4"
-                style={{ background: '#FFF0F1', border: '1px solid #F5D0D4', color: '#C97C85' }}>
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {[
-                { label: 'Full name', type: 'text', value: name, setter: setName, placeholder: 'Your name' },
-                { label: 'Email', type: 'email', value: email, setter: setEmail, placeholder: 'you@example.com' },
-                { label: 'Password', type: 'password', value: password, setter: setPassword, placeholder: 'Min. 6 characters' },
-              ].map((field) => (
-                <div key={field.label}>
-                  <label className="block text-xs font-medium mb-1.5 uppercase tracking-wide" style={{ color: '#6B4C3B' }}>
-                    {field.label}
-                  </label>
+          <form onSubmit={handleSubmit}>
+            {fields.map((field) => (
+              <div key={field.label} style={{ marginBottom:18 }}>
+                <label style={{ display:'block', fontSize:11, fontWeight:500, textTransform:'uppercase', letterSpacing:1, color:'#4A5E45', marginBottom:8 }}>
+                  {field.label}
+                </label>
+                <div style={{ position:'relative' }}>
+                  <div style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'#8A9E85' }}>
+                    {field.icon}
+                  </div>
                   <input
                     type={field.type}
                     value={field.value}
                     onChange={e => field.setter(e.target.value)}
                     placeholder={field.placeholder}
                     required
-                    className="w-full px-4 py-3 rounded-2xl text-sm outline-none transition-all"
-                    style={{ background: '#FAF6F0', border: '1.5px solid #E8D5BE', color: '#3D2B1F' }}
-                    onFocus={e => e.target.style.borderColor = '#B5C9A8'}
-                    onBlur={e => e.target.style.borderColor = '#E8D5BE'}
+                    style={{ width:'100%', padding:'13px 16px 13px 42px', borderRadius:12, border:'1.5px solid #D4DEAD', background:'#FDFCFA', color:'#1C3A18', fontSize:14, outline:'none', boxSizing:'border-box', fontFamily:"'DM Sans', sans-serif", transition:'border-color 0.2s' }}
+                    onFocus={e => e.target.style.borderColor = '#4A7C3F'}
+                    onBlur={e => e.target.style.borderColor = '#D4DEAD'}
                   />
                 </div>
-              ))}
+              </div>
+            ))}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 rounded-2xl text-sm font-medium transition-all mt-2"
-                style={{ background: 'linear-gradient(135deg, #B5C9A8, #8BA87B)', color: 'white', opacity: loading ? 0.7 : 1 }}
-              >
-                {loading ? 'Creating account...' : 'Create account 🌿'}
-              </button>
-            </form>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width:'100%',
+                padding:'14px',
+                borderRadius:12,
+                border:'none',
+                background: loading ? '#8A9E85' : 'linear-gradient(135deg, #2D5A27 0%, #4A7C3F 100%)',
+                color:'white',
+                fontSize:15,
+                fontWeight:500,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontFamily:"'DM Sans', sans-serif",
+                marginTop:8,
+                display:'flex',
+                alignItems:'center',
+                justifyContent:'center',
+                gap:8,
+                transition:'all 0.2s'
+              }}
+            >
+              {loading ? 'Creating account...' : (
+                <>
+                  <Leaf size={16} />
+                  Create my account
+                </>
+              )}
+            </button>
+          </form>
 
-            <p className="text-center text-sm mt-5" style={{ color: '#9B7B6B' }}>
-              Already have an account?{' '}
-              <Link to="/login" className="font-medium" style={{ color: '#E8A0A8' }}>Sign in</Link>
-            </p>
-          </div>
+          <p style={{ textAlign:'center', fontSize:13, color:'#7A8A75', marginTop:24 }}>
+            Already have an account?{' '}
+            <Link to="/login" style={{ color:'#2D5A27', fontWeight:500, textDecoration:'none' }}>
+              Sign in
+            </Link>
+          </p>
         </div>
       </div>
     </div>
