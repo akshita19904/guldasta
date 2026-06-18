@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
+import { sendWelcomeEmail } from '../services/emailService';
 
 const generateToken = (id: string): string => {
   return jwt.sign({ id }, process.env.JWT_SECRET || '', {
@@ -32,6 +33,11 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     const user = await User.create({ name, email, password });
     const token = generateToken(user._id.toString());
+
+    
+  sendWelcomeEmail(user.email, user.name).catch(err =>
+    console.log('Welcome email failed:', err.message)
+  );
 
     res.status(201).json({
       success: true,

@@ -6,9 +6,11 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import People from './pages/People'
-import Reminders from './pages/Reminders'
-import CalendarPage from './pages/CalendarPage'
+import Celebrations from './pages/Celebrations'
+import Gifts from './pages/Gifts'
 import './style.css'
+import Messages from './pages/Messages'
+import Store from './pages/Store'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -28,9 +30,11 @@ const App = () => (
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/people" element={<ProtectedRoute><People /></ProtectedRoute>} />
-        <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
-        <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+        <Route path="/celebrations" element={<ProtectedRoute><Celebrations /></ProtectedRoute>} />
+        <Route path="/gifts" element={<ProtectedRoute><Gifts /></ProtectedRoute>} />
+        <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
       </Routes>
     </AuthProvider>
   </BrowserRouter>

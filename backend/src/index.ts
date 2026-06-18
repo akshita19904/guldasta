@@ -5,6 +5,10 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import peopleRoutes from './routes/people';
 import reminderRoutes from './routes/reminders';
+import giftRoutes from './routes/gifts';
+import messageRoutes from './routes/messages';
+import productRoutes from './routes/products';
+import orderRoutes from './routes/orders';
 
 dotenv.config();
 const app = express();
@@ -19,9 +23,13 @@ mongoose.connect(process.env.MONGO_URI || '')
 app.use('/api/auth', authRoutes);
 app.use('/api/people', peopleRoutes);
 app.use('/api/reminders', reminderRoutes);
+app.use('/api/gifts', giftRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Guldasta API running ' });
+  res.json({ message: 'Guldasta API running' });
 });
 
 const PORT = process.env.PORT || 5000;

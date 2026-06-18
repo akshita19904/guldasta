@@ -4,18 +4,19 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, Bell, Calendar,
   Gift, MessageCircle, Settings, LogOut,
-  Leaf, Menu, X
+  Leaf, Menu, X, ShoppingBag
 } from 'lucide-react';
 
 const navItems = [
   { path: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
   { path: '/people', icon: <Users size={18} />, label: 'My Circle' },
-  { path: '/reminders', icon: <Bell size={18} />, label: 'Reminders' },
-  { path: '/calendar', icon: <Calendar size={18} />, label: 'Calendar' },
+  { path: '/celebrations', icon: <Bell size={18} />, label: 'Celebrations' },
   { path: '/gifts', icon: <Gift size={18} />, label: 'Gift Ideas' },
+  { path: '/store', icon: <ShoppingBag size={18} />, label: 'Gift Store' },
   { path: '/messages', icon: <MessageCircle size={18} />, label: 'Messages' },
   { path: '/settings', icon: <Settings size={18} />, label: 'Settings' },
 ];
+
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
