@@ -11,6 +11,8 @@ export interface IPerson extends Document {
   avatar?: string;
   phone?: string;
   email?: string;
+  age?: number;
+  gender?: 'male' | 'female' | 'other' | 'prefer not to say';
   createdAt: Date;
 }
 
@@ -36,7 +38,12 @@ const PersonSchema = new Schema<IPerson>({
   notes: { type: String },
   avatar: { type: String, default: '' },
   phone: { type: String },
-  email: { type: String }
+  email: { type: String },
+  age: { type: Number },
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'other', 'prefer not to say'],
+  },
 }, { timestamps: true });
 
 export default mongoose.model<IPerson>('Person', PersonSchema);

@@ -24,12 +24,12 @@ export interface IOrder extends Document {
 const OrderSchema = new Schema<IOrder>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   items: [{
-    productId: { type: Schema.Types.ObjectId, ref: 'Product' },
-    name: String,
-    price: Number,
-    quantity: { type: Number, default: 1 },
-    customMessage: String,
-  }],
+      productId: { type: String },
+      name: String,
+      price: Number,
+      quantity: { type: Number, default: 1 },
+      customMessage: String,
+    }],
   totalAmount: { type: Number, required: true },
   recipientName: { type: String, required: true },
   recipientPhone: { type: String, required: true },

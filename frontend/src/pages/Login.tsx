@@ -17,11 +17,11 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
-    } finally {
+    const isAdmin = await login(email, password);
+    navigate(isAdmin ? '/admin/overview' : '/dashboard');
+  } catch (err) {
+    setError('Login failed');
+  }finally {
       setLoading(false);
     }
   };

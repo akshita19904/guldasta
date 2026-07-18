@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { MessageCircle, Sparkles, Copy, Check, RefreshCw, ChevronDown } from 'lucide-react';
 import Layout from '../components/Layout';
+import { saveCachedResult, getCachedResult } from '../utils/cacheStorage';
 import { usePeople } from '../hooks/usePeople';
 import api from '../utils/api';
 
 const occasions = ['Birthday', 'Anniversary', 'Congratulations', 'Thank you', 'Just because', 'Get well soon', 'Farewell', 'Festival', 'Custom'];
+
+const relationships = ['Best friend', 'Partner', 'Parent', 'Sibling', 'Colleague', 'Crush'];
 
 const toneConfig = [
   { key: 'warm', label: 'Heartfelt', desc: 'Warm and emotional', color: '#D4A96A', bg: '#FBF5E8' },
@@ -24,9 +27,10 @@ export default function Messages() {
   const [selectedPerson, setSelectedPerson] = useState('');
   const [manualName, setManualName] = useState('');
   const [manualInterests, setManualInterests] = useState('');
+  const [relationship, setRelationship] = useState('Best friend');
   const [occasion, setOccasion] = useState('Birthday');
   const [extraContext, setExtraContext] = useState('');
-  const [messages, setMessages] = useState<GeneratedMessage[]>([]);
+  const [messages, setMessages] = useState<GeneratedMessage[]>(() => getCachedResult('guldasta_last_messages') || []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -42,13 +46,14 @@ export default function Messages() {
     try {
       const res = await api.post('/messages/generate-all', {
         personName: person?.name || manualName || 'them',
-        relationship: person?.relationship || 'friend',
+        relationship: person?.relationship || relationship,
         occasion,
         interests: person?.interests?.join(', ') || manualInterests,
         extraContext
       });
       setMessages(res.data.messages);
       setEditedTexts({});
+      saveCachedResult('guldasta_last_messages', res.data.messages);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to generate messages');
     } finally {
@@ -119,20 +124,37 @@ export default function Messages() {
 
           {/* Manual entry */}
           {!selectedPerson && (
-            <div style={{ marginBottom: 16, padding: 14, background: '#F7F4EF', borderRadius: 12, border: '1px dashed #C8D9C4' }}>
-              <div style={{ marginBottom: 10 }}>
-                <label style={{ display: 'block', fontSize: 11, color: '#4A5E45', marginBottom: 6 }}>Their name</label>
-                <input value={manualName} onChange={e => setManualName(e.target.value)}
-                  placeholder="e.g. Priya"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #D4DEAD', background: 'white', color: '#1C3A18', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+            <>
+              <div style={{ marginBottom: 16, padding: 14, background: '#F7F4EF', borderRadius: 12, border: '1px dashed #C8D9C4' }}>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ display: 'block', fontSize: 11, color: '#4A5E45', marginBottom: 6 }}>Their name</label>
+                  <input value={manualName} onChange={e => setManualName(e.target.value)}
+                    placeholder="e.g. Priya"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #D4DEAD', background: 'white', color: '#1C3A18', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: '#4A5E45', marginBottom: 6 }}>Their vibe / personality</label>
+                  <input value={manualInterests} onChange={e => setManualInterests(e.target.value)}
+                    placeholder="e.g. funny, loves travel, very emotional"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #D4DEAD', background: 'white', color: '#1C3A18', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+                </div>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, color: '#4A5E45', marginBottom: 6 }}>Their vibe / personality</label>
-                <input value={manualInterests} onChange={e => setManualInterests(e.target.value)}
-                  placeholder="e.g. funny, loves travel, very emotional"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #D4DEAD', background: 'white', color: '#1C3A18', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+
+              {/* Relationship selector */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, color: '#4A5E45', marginBottom: 8 }}>
+                  Your relationship
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  {relationships.map(r => (
+                    <button key={r} onClick={() => setRelationship(r)}
+                      style={{ padding: '8px', borderRadius: 9, border: `1.5px solid ${relationship === r ? '#4A7C3F' : '#E8E2DA'}`, background: relationship === r ? '#EEF4EC' : 'white', color: relationship === r ? '#2D5A27' : '#7A8A75', fontSize: 12, cursor: 'pointer', fontWeight: relationship === r ? 500 : 400, fontFamily: "'DM Sans', sans-serif" }}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Occasion */}
@@ -261,7 +283,7 @@ export default function Messages() {
                         <textarea
                           value={editedTexts[i]}
                           onChange={e => setEditedTexts(prev => ({ ...prev, [i]: e.target.value }))}
-                          style={{ width: '100%', padding: '14px', borderRadius: 12, border: '1.5px solid #4A7C3F', background: '#F7F4EF', color: '#1C3A18', fontSize: 14, lineHeight: 1.7, outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif', minHeight: '120px" }}
+                          style={{ width: '100%', padding: '14px', borderRadius: 12, border: '1.5px solid #4A7C3F', background: '#F7F4EF', color: '#1C3A18', fontSize: 14, lineHeight: 1.7, outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif", minHeight: 120 }}
                           rows={5}
                         />
                       ) : (

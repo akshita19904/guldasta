@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, Bell, Calendar,
@@ -12,8 +13,9 @@ const navItems = [
   { path: '/people', icon: <Users size={18} />, label: 'My Circle' },
   { path: '/celebrations', icon: <Bell size={18} />, label: 'Celebrations' },
   { path: '/gifts', icon: <Gift size={18} />, label: 'Gift Ideas' },
-  { path: '/store', icon: <ShoppingBag size={18} />, label: 'Gift Store' },
   { path: '/messages', icon: <MessageCircle size={18} />, label: 'Messages' },
+  { path: '/store', icon: <ShoppingBag size={18} />, label: 'Gift Store' },
+  { path: '/orders', icon: <Package size={18} />, label: 'My Orders' },
   { path: '/settings', icon: <Settings size={18} />, label: 'Settings' },
 ];
 
@@ -41,11 +43,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const SidebarContent = () => (
     <div style={{
       width: 240,
-      minHeight: '100vh',
+      height: '100vh',
       background: '#1C3A18',
       display: 'flex',
       flexDirection: 'column',
       flexShrink: 0,
+      position: 'sticky',
+      top: 0,
+      overflowY: 'auto',
     }}>
       {/* Logo */}
       <div style={{ padding: '28px 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
@@ -155,7 +160,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         {/* Spacer for mobile header */}
         {!isDesktop && <div style={{ height: 56 }}></div>}
         <main style={{ flex: 1, padding: '28px 28px', maxWidth: 1200, width: '100%' }}>

@@ -9,6 +9,11 @@ export interface IProduct extends Document {
   tags: string[];
   inStock: boolean;
   isCustomizable: boolean;
+  customizationOptions?: {
+    colors?: string[];
+    sizes?: { label: string; priceModifier: number }[];
+    addOns?: { name: string; price: number }[];
+  };
   createdAt: Date;
 }
 
@@ -25,6 +30,11 @@ const ProductSchema = new Schema<IProduct>({
   tags: [{ type: String }],
   inStock: { type: Boolean, default: true },
   isCustomizable: { type: Boolean, default: false },
+  customizationOptions: {
+    colors: [{ type: String }],
+    sizes: [{ label: String, priceModifier: Number }],
+    addOns: [{ name: String, price: Number }],
+  },
 }, { timestamps: true });
 
 export default mongoose.model<IProduct>('Product', ProductSchema);

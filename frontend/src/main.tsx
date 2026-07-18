@@ -11,6 +11,10 @@ import Gifts from './pages/Gifts'
 import './style.css'
 import Messages from './pages/Messages'
 import Store from './pages/Store'
+import Customize from './pages/Customize'
+import Orders from './pages/Orders'
+import AdminOverview from './pages/AdminOverview'
+import AdminOrders from './pages/AdminOrders'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -34,7 +38,11 @@ const App = () => (
         <Route path="/gifts" element={<ProtectedRoute><Gifts /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/customize/:id" element={<ProtectedRoute><Customize /></ProtectedRoute>} />
         <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
+        <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+        <Route path="/admin/overview" element={<ProtectedRoute><AdminOverview /></ProtectedRoute>} />
+        <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
       </Routes>
     </AuthProvider>
   </BrowserRouter>

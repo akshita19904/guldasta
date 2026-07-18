@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { Plus, Trash2, Search, Users } from 'lucide-react';
+import { Plus, Trash2, Search, Users, X, Gift as GiftIcon, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
+import MemoryLog from '../components/MemoryLog';
 import { usePeople } from '../hooks/usePeople';
 
 const relationships = ['Partner', 'Family', 'Best Friend', 'Friend', 'Colleague', 'Mentor', 'Other'];
 const avatarColors = ['#4A7C3F', '#D4B978', '#6B9E5E', '#2D5A27', '#8A9E85', '#A8C5A0'];
 
 export default function People() {
+  const navigate = useNavigate();
   const { people, loading, addPerson, deletePerson } = usePeople();
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '', relationship: 'Friend', birthday: '',
     anniversary: '', interests: '', notes: '', phone: '', email: ''
@@ -45,6 +49,8 @@ export default function People() {
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.relationship.toLowerCase().includes(search.toLowerCase())
   );
+
+  const selectedPerson = people.find(p => p._id === selectedPersonId);
 
   return (
     <Layout>
@@ -97,7 +103,9 @@ export default function People() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
           {filtered.map((person, i) => (
-            <div key={person._id} style={{ background: 'white', borderRadius: 16, padding: 20, border: '1px solid #E8E2DA', transition: 'all 0.2s', cursor: 'pointer' }}
+            <div key={person._id}
+              onClick={() => setSelectedPersonId(person._id)}
+              style={{ background: 'white', borderRadius: 16, padding: 20, border: '1px solid #E8E2DA', transition: 'all 0.2s', cursor: 'pointer' }}
               onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 20px rgba(45,90,39,0.1)')}
               onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
             >
@@ -106,7 +114,7 @@ export default function People() {
                   {getInitials(person.name)}
                 </div>
                 <button
-                  onClick={() => deletePerson(person._id)}
+                  onClick={(e) => { e.stopPropagation(); deletePerson(person._id); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C5B8A8', padding: 4 }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#C0392B')}
                   onMouseLeave={e => (e.currentTarget.style.color = '#C5B8A8')}
@@ -200,6 +208,60 @@ export default function People() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Person Detail Modal */}
+      {selectedPerson && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,58,24,0.4)', zIndex: 100, display: 'flex', justifyContent: 'flex-end' }}
+          onClick={() => setSelectedPersonId(null)}>
+          <div style={{ background: '#F7F4EF', width: 440, maxWidth: '92vw', height: '100vh', overflowY: 'auto', padding: 24 }}
+            onClick={e => e.stopPropagation()}>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: '#1C3A18', margin: 0 }}>
+                {selectedPerson.name}
+              </h2>
+              <button onClick={() => setSelectedPersonId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7A8A75' }}>
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Person summary card */}
+            <div style={{ background: 'white', borderRadius: 16, padding: 20, border: '1px solid #E8E2DA', marginBottom: 16 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#4A7C3F', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 500, color: 'white' }}>
+                  {getInitials(selectedPerson.name)}
+                </div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: '#1C3A18', margin: 0 }}>{selectedPerson.name}</p>
+                  <p style={{ fontSize: 12, color: '#7A8A75', margin: 0 }}>{selectedPerson.relationship}</p>
+                </div>
+              </div>
+              {selectedPerson.interests && selectedPerson.interests.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  {selectedPerson.interests.map((interest, j) => (
+                    <span key={j} style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, background: '#EEF4EC', color: '#4A7C3F' }}>
+                      {interest}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button onClick={() => navigate('/gifts')}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', borderRadius: 9, background: '#EEF4EC', border: 'none', cursor: 'pointer', fontSize: 12, color: '#2D5A27', fontWeight: 500 }}>
+                  <GiftIcon size={13} /> Gift ideas
+                </button>
+                <button onClick={() => navigate('/messages')}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', borderRadius: 9, background: '#F7F4EF', border: 'none', cursor: 'pointer', fontSize: 12, color: '#4A5E45', fontWeight: 500 }}>
+                  <MessageCircle size={13} /> Write message
+                </button>
+              </div>
+            </div>
+
+            {/* Memory log */}
+            <MemoryLog personId={selectedPerson._id} />
           </div>
         </div>
       )}

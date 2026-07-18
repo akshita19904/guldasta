@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { Gift, Sparkles, BookmarkPlus, Bookmark, ChevronDown, Loader, Tag, Heart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Gift, Sparkles, BookmarkPlus, Bookmark, ChevronDown, Loader, Tag, Heart, History } from 'lucide-react';
 import Layout from '../components/Layout';
 import { usePeople } from '../hooks/usePeople';
+import { useGiftHistory } from '../hooks/useGiftHistory';
+import { saveCachedResult, getCachedResult } from '../utils/cacheStorage';
 import api from '../utils/api';
 
 const categoryIcons: Record<string, string> = {
   Experience: '✦', Tech: '⬡', Wellness: '◈', Books: '▣',
-  Food: '◉', Fashion: '◆', Home: '⬟', Art: '◇', Hobby: '⬠'
+  Food: '◉', Fashion: '◆', Home: '⬟', Art: '◇', Hobby: '⬠',
+  Bouquets: '✿', Hampers: '◫', Cakes: '◍', Experiences: '✦', Personalised: '◈', Plants: '❀', Combos: '◆'
 };
 
 const categoryColors: Record<string, { bg: string; color: string }> = {
@@ -19,17 +23,26 @@ const categoryColors: Record<string, { bg: string; color: string }> = {
   Home: { bg: '#EEF4EC', color: '#4A7C3F' },
   Art: { bg: '#F5F0FB', color: '#9B7DC8' },
   Hobby: { bg: '#FDF0EE', color: '#E07B6A' },
+  Bouquets: { bg: '#FDF0EE', color: '#E07B6A' },
+  Hampers: { bg: '#FBF5E8', color: '#D4A96A' },
+  Cakes: { bg: '#F5F0FB', color: '#9B7DC8' },
+  Experiences: { bg: '#EEF4EC', color: '#4A7C3F' },
+  Personalised: { bg: '#F0F7FB', color: '#5B9EC9' },
+  Plants: { bg: '#EEF4EC', color: '#4A7C3F' },
+  Combos: { bg: '#FDF0EE', color: '#E07B6A' },
 };
 
 interface GiftIdea {
-  title: string;
-  description: string;
-  priceRange: string;
+  productId: string;
+  name: string;
+  price: number;
   category: string;
+  isCustomizable: boolean;
   whyPerfect: string;
 }
 
 export default function Gifts() {
+  const navigate = useNavigate();
   const { people } = usePeople();
   const [selectedPerson, setSelectedPerson] = useState('');
   const [manualName, setManualName] = useState('');
@@ -37,14 +50,17 @@ export default function Gifts() {
   const [occasion, setOccasion] = useState('Birthday');
   const [budget, setBudget] = useState('₹500-₹2000');
   const [extraContext, setExtraContext] = useState('');
-  const [gifts, setGifts] = useState<GiftIdea[]>([]);
+  const [gifts, setGifts] = useState<GiftIdea[]>(() => getCachedResult('guldasta_last_gifts') || []);
   const [savedGifts, setSavedGifts] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [personName, setPersonName] = useState('');
+  const [personName, setPersonName] = useState(() => getCachedResult('guldasta_last_person_name') || '');
   const [showSaved, setShowSaved] = useState(false);
   const [dbSavedGifts, setDbSavedGifts] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
+
+  const person = people.find(p => p._id === selectedPerson);
+  const { history } = useGiftHistory(selectedPerson || null);
 
   const handleGenerate = async () => {
     setError('');
@@ -60,8 +76,15 @@ export default function Gifts() {
         budget,
         extraContext
       });
-      setGifts(res.data.gifts);
+
+      if (res.data.gifts.length === 0 && res.data.message) {
+  setError(res.data.message);
+} else {
+  setGifts(res.data.gifts);
+  saveCachedResult('guldasta_last_gifts', res.data.gifts);
+}
       setPersonName(res.data.person?.name || manualName || 'them');
+      saveCachedResult('guldasta_last_person_name', res.data.person?.name || manualName || 'them');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to generate gifts');
     } finally {
@@ -73,7 +96,10 @@ export default function Gifts() {
     try {
       await api.post('/gifts/save', {
         personId: selectedPerson || null,
-        ...gift,
+        productId: gift.productId,
+        name: gift.name,
+        price: gift.price,
+        category: gift.category,
         occasion
       });
       setSavedGifts(prev => new Set([...prev, index]));
@@ -98,8 +124,6 @@ export default function Gifts() {
     if (!showSaved) fetchSaved();
     setShowSaved(!showSaved);
   };
-
-  const person = people.find(p => p._id === selectedPerson);
 
   return (
     <Layout>
@@ -149,7 +173,6 @@ export default function Gifts() {
                       <span style={{ fontSize: 12, color: '#7A8A75' }}>{(gift.personId as any)?.name || 'General'}</span>
                     </div>
                     <p style={{ fontSize: 15, fontWeight: 600, color: '#1C3A18', marginBottom: 8 }}>{gift.title}</p>
-                    <p style={{ fontSize: 13, color: '#7A8A75', lineHeight: 1.5, marginBottom: 12 }}>{gift.description}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Tag size={13} color="#4A7C3F" />
                       <span style={{ fontSize: 13, fontWeight: 500, color: '#4A7C3F' }}>{gift.priceRange}</span>
@@ -195,22 +218,48 @@ export default function Gifts() {
               </div>
             </div>
 
-            {/* Person preview if selected from circle */}
+            {/* Person preview + gift history */}
             {person && (
-              <div style={{ background: '#EEF4EC', borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#4A7C3F', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 500, color: 'white', flexShrink: 0 }}>
-                  {person.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+              <>
+                <div style={{ background: '#EEF4EC', borderRadius: 12, padding: '12px 14px', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#4A7C3F', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 500, color: 'white', flexShrink: 0 }}>
+                    {person.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: '#1C3A18' }}>{person.name}</p>
+                    <p style={{ fontSize: 11, color: '#4A7C3F' }}>
+                      {person.interests?.slice(0, 2).join(', ') || 'No interests added'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: '#1C3A18' }}>{person.name}</p>
-                  <p style={{ fontSize: 11, color: '#4A7C3F' }}>
-                    {person.interests?.slice(0, 2).join(', ') || 'No interests added'}
-                  </p>
-                </div>
-              </div>
+
+                {history.length > 0 && (
+                  <div style={{ marginBottom: 16, padding: '12px 14px', background: '#FBF5E8', borderRadius: 12, border: '1px solid #F0E0BE' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                      <History size={13} color="#D4A96A" />
+                      <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: '#8B5E17', margin: 0 }}>
+                        Gifts already given ({history.length})
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {history.slice(0, 3).map(item => (
+                        <div key={item._id} style={{ fontSize: 12, color: '#6B5030' }}>
+                          • {item.title} <span style={{ color: '#A07830' }}>({item.occasion})</span>
+                        </div>
+                      ))}
+                      {history.length > 3 && (
+                        <p style={{ fontSize: 11, color: '#A07830', margin: 0 }}>+{history.length - 3} more</p>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 11, color: '#8B5E17', marginTop: 8, marginBottom: 0, fontStyle: 'italic' }}>
+                      AI will avoid repeating these
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Manual entry when no person selected from circle */}
+            {/* Manual entry */}
             {!selectedPerson && (
               <div style={{ marginBottom: 16, padding: 14, background: '#F7F4EF', borderRadius: 12, border: '1px dashed #C8D9C4' }}>
                 <p style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, color: '#4A5E45', marginBottom: 12 }}>
@@ -225,8 +274,6 @@ export default function Gifts() {
                     onChange={e => setManualName(e.target.value)}
                     placeholder="e.g. Rahul, my college friend"
                     style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #D4DEAD', background: 'white', color: '#1C3A18', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
-                    onFocus={e => e.target.style.borderColor = '#4A7C3F'}
-                    onBlur={e => e.target.style.borderColor = '#D4DEAD'}
                   />
                 </div>
                 <div>
@@ -238,8 +285,6 @@ export default function Gifts() {
                     onChange={e => setManualInterests(e.target.value)}
                     placeholder="e.g. cricket, gaming, coffee"
                     style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #D4DEAD', background: 'white', color: '#1C3A18', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
-                    onFocus={e => e.target.style.borderColor = '#4A7C3F'}
-                    onBlur={e => e.target.style.borderColor = '#D4DEAD'}
                   />
                 </div>
               </div>
@@ -286,8 +331,6 @@ export default function Gifts() {
                 placeholder="e.g. she loves minimalist things, avoid sweets, something eco-friendly..."
                 rows={3}
                 style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: '1.5px solid #D4DEAD', background: '#FDFCFA', color: '#1C3A18', fontSize: 13, outline: 'none', resize: 'none', boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif" }}
-                onFocus={e => e.target.style.borderColor = '#4A7C3F'}
-                onBlur={e => e.target.style.borderColor = '#D4DEAD'}
               />
             </div>
 
@@ -383,34 +426,38 @@ export default function Gifts() {
                           <span style={{ fontSize: 12, padding: '4px 10px', borderRadius: 20, background: colors.bg, color: colors.color, fontWeight: 500 }}>
                             {gift.category}
                           </span>
+                          {gift.isCustomizable && (
+                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, background: '#FBF5E8', color: '#D4A96A', fontWeight: 500 }}>
+                              ✨ Customizable
+                            </span>
+                          )}
                         </div>
 
                         <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1C3A18', marginBottom: 8, lineHeight: 1.3 }}>
-                          {gift.title}
+                          {gift.name}
                         </h3>
-
-                        <p style={{ fontSize: 13, color: '#7A8A75', lineHeight: 1.6, marginBottom: 12 }}>
-                          {gift.description}
-                        </p>
 
                         <div style={{ background: '#F7F4EF', borderRadius: 10, padding: '10px 12px', marginBottom: 14, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                           <Heart size={13} color="#D4A96A" style={{ marginTop: 2, flexShrink: 0 }} />
                           <p style={{ fontSize: 12, color: '#6B5030', lineHeight: 1.5, margin: 0 }}>{gift.whyPerfect}</p>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <Tag size={13} color="#4A7C3F" />
-                            <span style={{ fontSize: 14, fontWeight: 600, color: '#2D5A27' }}>{gift.priceRange}</span>
-                          </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                          <span style={{ fontSize: 17, fontWeight: 600, color: '#2D5A27', fontFamily: "'Playfair Display', serif" }}>₹{gift.price}</span>
                           <button
                             onClick={() => handleSave(gift, i)}
                             disabled={isSaved}
-                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: isSaved ? '#EEF4EC' : 'white', border: `1.5px solid ${isSaved ? '#4A7C3F' : '#E8E2DA'}`, color: isSaved ? '#4A7C3F' : '#7A8A75', fontSize: 12, fontWeight: 500, cursor: isSaved ? 'default' : 'pointer', transition: 'all 0.15s', fontFamily: "'DM Sans', sans-serif" }}>
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: isSaved ? '#EEF4EC' : 'white', border: `1.5px solid ${isSaved ? '#4A7C3F' : '#E8E2DA'}`, color: isSaved ? '#4A7C3F' : '#7A8A75', fontSize: 12, fontWeight: 500, cursor: isSaved ? 'default' : 'pointer' }}>
                             {isSaved ? <Bookmark size={13} /> : <BookmarkPlus size={13} />}
-                            {isSaved ? 'Saved' : 'Save idea'}
+                            {isSaved ? 'Saved' : 'Save'}
                           </button>
                         </div>
+
+                        <button
+                          onClick={() => navigate(gift.isCustomizable ? `/customize/${gift.productId}` : `/store?highlight=${gift.productId}`)}
+                          style={{ width: '100%', padding: '10px', borderRadius: 10, background: 'linear-gradient(135deg, #2D5A27, #4A7C3F)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
+                         {gift.isCustomizable ? 'Customize & Order →' : 'View in Store →'}
+                        </button>
                       </div>
                     );
                   })}

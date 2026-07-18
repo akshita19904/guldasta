@@ -11,8 +11,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -34,20 +34,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     const res = await api.post('/auth/login', { email, password });
     localStorage.setItem('guldasta_token', res.data.token);
+    localStorage.setItem('guldasta_is_admin', String(res.data.isAdmin));
     setUser(res.data.user);
+    return res.data.isAdmin;
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, password: string): Promise<boolean> => {
     const res = await api.post('/auth/register', { name, email, password });
     localStorage.setItem('guldasta_token', res.data.token);
+    localStorage.setItem('guldasta_is_admin', String(res.data.isAdmin));
     setUser(res.data.user);
+    return res.data.isAdmin;
   };
 
   const logout = () => {
     localStorage.removeItem('guldasta_token');
+    localStorage.removeItem('guldasta_is_admin');
     setUser(null);
   };
 

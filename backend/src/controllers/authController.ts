@@ -10,6 +10,11 @@ const generateToken = (id: string): string => {
   });
 };
 
+const checkIsAdmin = (email: string): boolean => {
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+  return adminEmails.includes(email.trim().toLowerCase());
+};
+
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password } = req.body;
@@ -48,7 +53,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         avatar: user.avatar
-      }
+      },
+      isAdmin: checkIsAdmin(user.email)
     });
 
   } catch (error: any) {
@@ -100,7 +106,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         avatar: user.avatar
-      }
+      },
+      isAdmin: checkIsAdmin(user.email)
     });
 
   } catch (error: any) {

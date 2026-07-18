@@ -1,58 +1,21 @@
 import { Response } from 'express';
-import { Groq } from 'groq-sdk';
 import Gift from '../models/Gift';
 import Person from '../models/Person';
+import Product from '../models/Product';
+import Order from '../models/Order';
 import { AuthRequest } from '../middleware/auth';
+import Note from '../models/Note';
+import { logAiUsage } from '../services/aiUsageLogger';
+import { rankProducts, PersonContext, PastGift, ProductForScoring } from '../services/scoringEngine';
+const Groq = require('groq-sdk').Groq;
 
-const giftDatabase: Record<string, string[]> = {
-  cars: ['Car accessory kit', 'Dashboard cam', 'Car perfume set', 'Miniature car model', 'Car cleaning kit'],
-  movies: ['OTT subscription', 'Movie night hamper', 'Collectible figurine', 'Cinema gift card'],
-  food: ['Premium restaurant voucher', 'Gourmet chocolate box', 'Artisan coffee set', 'Food hamper'],
-  travel: ['Travel organizer set', 'Luggage tag set', 'Travel journal', 'Portable charger'],
-  books: ['Bestseller book set', 'Kindle subscription', 'Bookstore gift card', 'Book light'],
-  music: ['Concert tickets', 'Spotify subscription', 'Vinyl record', 'Wireless earphones'],
-  fitness: ['Gym membership', 'Fitness tracker', 'Yoga mat set', 'Protein supplement pack'],
-  tech: ['Smart home device', 'Wireless charger', 'Bluetooth speaker', 'USB hub'],
-  fashion: ['Luxury wallet', 'Sunglasses', 'Perfume', 'Watch'],
-  art: ['Sketch set', 'Canvas painting kit', 'Art journal', 'Online art course'],
-  gaming: ['Game controller', 'Gaming headset', 'Game voucher', 'RGB mouse pad'],
-  wellness: ['Spa voucher', 'Essential oil set', 'Meditation app subscription', 'Bath bomb set'],
-  cooking: ['Premium spice set', 'Cooking class', 'Kitchen gadget set', 'Recipe book'],
-  plants: ['Succulent set', 'Indoor plant kit', 'Gardening tools', 'Terrarium kit'],
-  photography: ['Camera bag', 'Lens cleaning kit', 'Photo printing voucher', 'Tripod'],
+const budgetRanges: Record<string, { min: number; max: number }> = {
+  'Under ₹500': { min: 0, max: 500 },
+  '₹500-₹2000': { min: 500, max: 2000 },
+  '₹2000-₹5000': { min: 2000, max: 5000 },
+  '₹5000-₹10000': { min: 5000, max: 10000 },
+  '₹10000+': { min: 10000, max: 999999 },
 };
-
-const occasionBoosts: Record<string, string[]> = {
-  Birthday: ['Personalised gift', 'Experience voucher', 'Surprise hamper', 'Memory book'],
-  Anniversary: ['Couple experience', 'Personalised jewellery', 'Photo album', 'Weekend getaway'],
-  Graduation: ['Professional bag', 'Planner set', 'Skill course subscription', 'Celebration dinner'],
-  Festival: ['Traditional sweets box', 'Home decor item', 'Festive hamper'],
-  'Just because': ['Comfort food basket', 'Self-care kit', 'Plant', 'Handwritten letter kit'],
-  Custom: ['Personalised gift', 'Experience voucher', 'Premium hamper'],
-};
-
-function getRuleBasedGifts(interests: string[], occasion: string, budget: string): string[] {
-  const suggestions = new Set<string>();
-
-  interests.forEach(interest => {
-    const key = interest.toLowerCase().trim();
-    Object.keys(giftDatabase).forEach(dbKey => {
-      if (key.includes(dbKey) || dbKey.includes(key)) {
-        giftDatabase[dbKey].forEach(g => suggestions.add(g));
-      }
-    });
-  });
-
-  const occasionGifts = occasionBoosts[occasion] || occasionBoosts['Custom'];
-  occasionGifts.forEach(g => suggestions.add(g));
-
-  if (suggestions.size < 6) {
-    ['Personalised gift', 'Experience voucher', 'Premium hamper', 'Gift card', 'Comfort basket', 'Scented candle set']
-      .forEach(g => suggestions.add(g));
-  }
-
-  return Array.from(suggestions).slice(0, 8);
-}
 
 export const generateGifts = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -60,11 +23,16 @@ export const generateGifts = async (req: AuthRequest, res: Response): Promise<vo
 
     const occasionText = occasion || 'Birthday';
     const budgetText = budget || '₹500-₹2000';
+    const range = budgetRanges[budgetText] || budgetRanges['₹500-₹2000'];
 
+    // ── Step 1: Resolve person context ──────────────────────────────────
     let personName = manualName || 'them';
-    let relationship = 'friend';
+    let relationship = 'Friend';
     let interests: string[] = [];
     let notes = '';
+    let age: number | undefined;
+    let gender: string | undefined;
+    let pastGiftsRaw: PastGift[] = [];
 
     if (personId) {
       const person = await Person.findOne({ _id: personId, userId: req.user._id });
@@ -73,42 +41,122 @@ export const generateGifts = async (req: AuthRequest, res: Response): Promise<vo
         relationship = person.relationship;
         interests = person.interests || [];
         notes = person.notes || '';
+        age = person.age;
+        gender = person.gender;
+      }
+
+      const savedGifts = await Gift.find({ userId: req.user._id, personId })
+        .sort({ createdAt: -1 }).limit(15);
+      pastGiftsRaw = savedGifts.map(g => ({
+        productId: undefined,
+        title: g.title,
+        category: g.category || '',
+        occasion: g.occasion,
+        createdAt: g.createdAt,
+      }));
+
+      const recentNotes = await Note.find({ userId: req.user._id, personId })
+        .sort({ createdAt: -1 }).limit(5);
+      if (recentNotes.length > 0) {
+        notes = notes + ' ' + recentNotes.map((n: any) => n.content).join('. ');
       }
     } else if (manualInterests) {
       interests = manualInterests.split(',').map((i: string) => i.trim());
     }
 
-    const ruleBasedGifts = getRuleBasedGifts(interests, occasionText, budgetText);
+    // ── Step 2: Build platform-wide popularity map ───────────────────────
+    const popularityAgg = await Order.aggregate([
+      { $unwind: '$items' },
+      { $group: { _id: '$items.productId', unitsSold: { $sum: '$items.quantity' } } },
+      { $sort: { unitsSold: -1 } },
+    ]);
 
-    const prompt = `You are a thoughtful gift advisor for Indian users. Follow these rules strictly.
+    const maxSold = popularityAgg[0]?.unitsSold || 1;
+    const popularityMap: Record<string, number> = {};
+    for (const entry of popularityAgg) {
+      popularityMap[entry._id] = Math.round((entry.unitsSold / maxSold) * 100);
+    }
 
-STRICT RULES:
-1. ALL prices MUST be within ${budgetText} — no exceptions whatsoever
-2. Occasion is ${occasionText} — every gift must suit this specific occasion
-3. User's special request: "${extraContext || 'none'}" — follow this very carefully
-4. Interests: ${interests.join(', ') || 'general'} — match gifts to these
+    // ── Step 3: Fetch all in-stock products, score and rank ───────────────
+    const allProducts = await Product.find({ inStock: true });
 
-Person:
+    if (allProducts.length === 0) {
+      res.status(200).json({
+        success: true, gifts: [],
+        person: { name: personName, relationship },
+        message: 'No products available right now. Check back soon!'
+      });
+      return;
+    }
+
+    const personContext: PersonContext = { relationship, interests, notes, age, gender };
+
+    const productsForScoring: ProductForScoring[] = allProducts.map(p => ({
+      _id: String(p._id),
+      name: p.name,
+      price: p.price,
+      category: p.category,
+      tags: p.tags,
+      isCustomizable: p.isCustomizable,
+      inStock: p.inStock,
+    }));
+
+    const ranked = rankProducts(
+      productsForScoring,
+      personContext,
+      occasionText,
+      range.min,
+      range.max,
+      pastGiftsRaw,
+      popularityMap
+    );
+
+    // Top 10 pre-ranked products go to AI for personalization
+    const top10 = ranked.slice(0, 10);
+    const pastGiftNames = pastGiftsRaw.map(g => g.title);
+
+    // ── Step 4: AI personalizes the pre-ranked list ───────────────────────
+    const productList = top10.map(p =>
+      `ID:${p._id}|${p.name}|₹${p.price}|${p.category}|tags:${p.tags.join(',')}|customizable:${p.isCustomizable}|score:${p.scoreBreakdown.total}`
+    ).join('\n');
+
+    const personDesc = [
+      `${personName} (${relationship})`,
+      age ? `Age: ${age}` : '',
+      gender ? `Gender: ${gender}` : '',
+      interests.length > 0 ? `Interests: ${interests.join(', ')}` : '',
+    ].filter(Boolean).join(' · ');
+
+    const prompt = `You are a gift advisor. The following products have already been scored and ranked for ${personDesc}. Pick the best 6 and write a personal reason why each suits them specifically.
+
+Person profile:
 - Name: ${personName}
 - Relationship: ${relationship}
+${age ? `- Age: ${age}` : ''}
+${gender ? `- Gender: ${gender}` : ''}
 - Interests: ${interests.join(', ') || 'not specified'}
-- Budget: ${budgetText} (STRICT)
 - Occasion: ${occasionText}
+- Budget: ${budgetText}
 - Special request: ${extraContext || 'none'}
-${notes ? `- Notes: ${notes}` : ''}
+${notes ? `- Notes/memories: ${notes}` : ''}
+${pastGiftNames.length > 0 ? `\nDO NOT suggest these gifts again (already given): ${pastGiftNames.join(', ')}` : ''}
 
-Starting ideas: ${ruleBasedGifts.join(', ')}
+STRICT RULES:
+- Do NOT suggest gifts clearly meant for the opposite gender or wrong age group
+- Do NOT suggest couple/romantic products unless relationship is Partner
+- Only pick from the list below using exact IDs
 
-Pick 6 most relevant. Personalise each one to ${personName} specifically.
-If user gave extra context like "minimal", "lowkey", "eco-friendly" — follow it strictly.
+PRE-RANKED PRODUCTS (higher score = better match):
+${productList}
 
-Return ONLY a raw JSON array, no markdown, no backticks, no explanation:
+Return ONLY a raw JSON array, no markdown:
 [{
-  "title": "specific gift name max 5 words",
-  "description": "why this suits ${personName} for ${occasionText} in 2 sentences",
-  "priceRange": "realistic Indian rupee price strictly within ${budgetText}",
-  "category": "Experience or Tech or Wellness or Books or Food or Fashion or Home or Art or Hobby",
-  "whyPerfect": "one line connecting their interests to the occasion"
+  "productId": "exact ID from the list",
+  "name": "exact product name",
+  "price": number,
+  "category": "exact category",
+  "isCustomizable": boolean,
+  "whyPerfect": "1-2 sentences personal to ${personName} referencing their age, gender, or interests"
 }]`;
 
     let gifts;
@@ -117,20 +165,47 @@ Return ONLY a raw JSON array, no markdown, no backticks, no explanation:
       const completion = await groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
+        temperature: 0.6,
         max_tokens: 1500,
       });
       const text = completion.choices[0].message.content || '';
       const cleaned = text.replace(/```json|```/g, '').trim();
-      gifts = JSON.parse(cleaned);
+      let parsed = JSON.parse(cleaned);
+
+      const seen = new Set();
+      gifts = parsed.filter((g: any) => {
+        if (seen.has(g.productId)) return false;
+        seen.add(g.productId);
+        return true;
+      });
+
+      if (gifts.length < 4) {
+        const usedIds = new Set(gifts.map((g: any) => g.productId));
+        const fillers = top10
+          .filter(p => !usedIds.has(p._id))
+          .slice(0, 6 - gifts.length)
+          .map(p => ({
+            productId: p._id,
+            name: p.name,
+            price: p.price,
+            category: p.category,
+            isCustomizable: p.isCustomizable,
+            whyPerfect: `A top-matched ${occasionText.toLowerCase()} gift for ${personName} based on their profile.`
+          }));
+        gifts = [...gifts, ...fillers];
+      }
+
+      logAiUsage(req.user._id, 'gift_suggestion', true);
     } catch (aiError) {
-      console.log('AI failed, using fallback:', aiError);
-      gifts = ruleBasedGifts.slice(0, 6).map((title, i) => ({
-        title,
-        description: `A thoughtful ${occasionText.toLowerCase()} gift. Perfect for the occasion and within budget.`,
-        priceRange: budgetText,
-        category: ['Experience', 'Wellness', 'Food', 'Fashion', 'Tech', 'Art'][i % 6],
-        whyPerfect: `Great choice for ${occasionText.toLowerCase()}`
+      console.log('AI failed, using scored fallback:', aiError);
+      logAiUsage(req.user._id, 'gift_suggestion', false);
+      gifts = top10.slice(0, 6).map(p => ({
+        productId: p._id,
+        name: p.name,
+        price: p.price,
+        category: p.category,
+        isCustomizable: p.isCustomizable,
+        whyPerfect: `A top-ranked ${occasionText.toLowerCase()} gift for ${personName} based on their profile.`
       }));
     }
 
@@ -147,11 +222,13 @@ Return ONLY a raw JSON array, no markdown, no backticks, no explanation:
 
 export const saveGift = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { personId, title, description, priceRange, category, occasion } = req.body;
+    const { personId, productId, name, price, category, occasion } = req.body;
     const gift = await Gift.create({
       userId: req.user._id,
       personId: personId || null,
-      title, description, priceRange,
+      title: name,
+      description: '',
+      priceRange: `₹${price}`,
       category, occasion, isSaved: true, isAIGenerated: true
     });
     res.status(201).json({ success: true, gift });
@@ -175,6 +252,17 @@ export const deleteGift = async (req: AuthRequest, res: Response): Promise<void>
   try {
     await Gift.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
     res.status(200).json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getGiftHistoryForPerson = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { personId } = req.params;
+    const gifts = await Gift.find({ userId: req.user._id, personId })
+      .sort({ createdAt: -1 });
+    res.status(200).json({ success: true, history: gifts });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

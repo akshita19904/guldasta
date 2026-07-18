@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Search, Plus, Minus, X, ChevronRight, Sparkles } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
@@ -11,6 +12,7 @@ interface Product {
   category: string;
   tags: string[];
   isCustomizable: boolean;
+  imageUrl?: string;
 }
 
 interface CartItem extends Product {
@@ -27,17 +29,35 @@ const categoryColors: Record<string, { bg: string; color: string }> = {
   Personalised: { bg: '#F0F7FB', color: '#5B9EC9' },
   Plants: { bg: '#EEF4EC', color: '#4A7C3F' },
   Combos: { bg: '#FDF0EE', color: '#E07B6A' },
+  Reorder: { bg: '#FBF5E8', color: '#D4A96A' },
+};
+
+const categoryEmoji: Record<string, string> = {
+  Bouquets: '✿',
+  Hampers: '◫',
+  Cakes: '◍',
+  Experiences: '✦',
+  Personalised: '◈',
+  Plants: '❀',
+  Combos: '◆',
 };
 
 export default function Store() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('All');
   const [search, setSearch] = useState('');
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const saved = localStorage.getItem('guldasta_cart');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [highlightedProduct, setHighlightedProduct] = useState<string | null>(null);
+  const [orderError, setOrderError] = useState('');
   const [checkout, setCheckout] = useState({
     recipientName: '', recipientPhone: '', deliveryAddress: '', deliveryDate: '', giftMessage: ''
   });
@@ -45,6 +65,43 @@ export default function Store() {
   useEffect(() => {
     fetchProducts();
   }, [category]);
+
+  useEffect(() => {
+    localStorage.setItem('guldasta_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  useEffect(() => {
+    if (searchParams.get('reorder') === 'true') {
+      const reorderData = sessionStorage.getItem('guldasta_reorder_cart');
+      if (reorderData) {
+        const items = JSON.parse(reorderData);
+        setCart(prev => {
+          const merged = [...prev];
+          items.forEach((newItem: CartItem) => {
+            const existing = merged.find(i => i._id === newItem._id);
+            if (existing) {
+              existing.quantity += newItem.quantity;
+            } else {
+              merged.push(newItem);
+            }
+          });
+          return merged;
+        });
+        setShowCart(true);
+        sessionStorage.removeItem('guldasta_reorder_cart');
+      }
+    }
+
+    const highlightId = searchParams.get('highlight');
+    if (highlightId) {
+      setHighlightedProduct(highlightId);
+      setTimeout(() => {
+        const el = document.getElementById(`product-${highlightId}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500);
+      setTimeout(() => setHighlightedProduct(null), 3000);
+    }
+  }, []);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -77,13 +134,15 @@ export default function Store() {
   };
 
   const updateQuantity = (id: string, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item._id === id) {
-        const newQty = item.quantity + delta;
-        return newQty > 0 ? { ...item, quantity: newQty } : item;
-      }
-      return item;
-    }).filter(item => item.quantity > 0));
+    setCart(prev => {
+      const updated = prev.map(item => {
+        if (item._id === id) {
+          return { ...item, quantity: item.quantity + delta };
+        }
+        return item;
+      });
+      return updated.filter(item => item.quantity > 0);
+    });
   };
 
   const removeFromCart = (id: string) => setCart(prev => prev.filter(item => item._id !== id));
@@ -95,6 +154,7 @@ export default function Store() {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    setOrderError('');
     try {
       await api.post('/orders', {
         items: cart.map(item => ({ productId: item._id, name: item.name, price: item.price, quantity: item.quantity })),
@@ -104,8 +164,9 @@ export default function Store() {
       setCart([]);
       setShowCheckout(false);
       setTimeout(() => setOrderSuccess(false), 4000);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setOrderError(err.response?.data?.message || 'Failed to place order. Please try again.');
     }
   };
 
@@ -177,19 +238,36 @@ export default function Store() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
           {filtered.map(product => {
             const colors = categoryColors[product.category] || categoryColors.Bouquets;
+            const cartItem = cart.find(item => item._id === product._id);
             return (
-              <div key={product._id} style={{ background: 'white', borderRadius: 16, padding: 20, border: '1px solid #E8E2DA', transition: 'all 0.2s' }}
+              <div
+                key={product._id}
+                id={`product-${product._id}`}
+                style={{
+                  background: 'white', borderRadius: 16, padding: 20,
+                  border: highlightedProduct === product._id ? '2px solid #4A7C3F' : '1px solid #E8E2DA',
+                  boxShadow: highlightedProduct === product._id ? '0 0 0 4px rgba(74,124,63,0.15)' : 'none',
+                  transition: 'all 0.3s'
+                }}
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(45,90,39,0.1)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = highlightedProduct === product._id ? '0 0 0 4px rgba(74,124,63,0.15)' : 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
 
-                <div style={{ width: '100%', height: 120, borderRadius: 12, background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, fontSize: 40 }}>
-                  {product.category === 'Bouquets' && '✿'}
-                  {product.category === 'Hampers' && '◫'}
-                  {product.category === 'Cakes' && '◍'}
-                  {product.category === 'Experiences' && '✦'}
-                  {product.category === 'Personalised' && '◈'}
-                  {product.category === 'Plants' && '❀'}
-                  {product.category === 'Combos' && '◆'}
+                {/* ── Product image ── */}
+                <div style={{ width: '100%', height: 160, borderRadius: 12, background: colors.bg, marginBottom: 14, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>
+                  {product.imageUrl ? (
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) parent.setAttribute('data-fallback', 'true');
+                      }}
+                    />
+                  ) : (
+                    <span>{categoryEmoji[product.category] || '✿'}</span>
+                  )}
                 </div>
 
                 <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: colors.bg, color: colors.color, fontWeight: 500 }}>
@@ -201,35 +279,36 @@ export default function Store() {
                   {product.description.slice(0, 70)}...
                 </p>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-  <span style={{ fontSize: 17, fontWeight: 600, color: '#2D5A27', fontFamily: "'Playfair Display', serif" }}>
-    ₹{product.price}
-  </span>
-  {(() => {
-    const cartItem = cart.find(item => item._id === product._id);
-    if (cartItem) {
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#EEF4EC', borderRadius: 10, padding: '4px 8px' }}>
-          <button onClick={() => updateQuantity(product._id, -1)}
-            style={{ width: 24, height: 24, borderRadius: 7, background: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2D5A27' }}>
-                <Minus size={12} />
-          </button>
-               <span style={{ fontSize: 13, fontWeight: 600, color: '#2D5A27', minWidth: 14, textAlign: 'center' }}>{cartItem.quantity}</span>
-               <button onClick={() => updateQuantity(product._id, 1)}
-                style={{ width: 24, height: 24, borderRadius: 7, background: '#2D5A27', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                    <Plus size={12} />
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: product.isCustomizable && !cartItem ? 10 : 0 }}>
+                  <span style={{ fontSize: 17, fontWeight: 600, color: '#2D5A27', fontFamily: "'Playfair Display', serif" }}>
+                    ₹{product.price}
+                  </span>
+                  {cartItem ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#EEF4EC', borderRadius: 10, padding: '4px 8px' }}>
+                      <button onClick={() => updateQuantity(product._id, -1)}
+                        style={{ width: 24, height: 24, borderRadius: 7, background: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2D5A27' }}>
+                        <Minus size={12} />
+                      </button>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#2D5A27', minWidth: 14, textAlign: 'center' }}>{cartItem.quantity}</span>
+                      <button onClick={() => updateQuantity(product._id, 1)}
+                        style={{ width: 24, height: 24, borderRadius: 7, background: '#2D5A27', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                  ) : !product.isCustomizable ? (
+                    <button onClick={() => addToCart(product)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 10, background: '#2D5A27', color: 'white', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
+                      <Plus size={13} /> Add
+                    </button>
+                  ) : null}
                 </div>
-              );
-            }
-                return (
-                <button onClick={() => addToCart(product)}
-                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 10, background: '#2D5A27', color: 'white', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>
-                   <Plus size={13} /> Add
-                </button>
-                );
-                })()}
-             </div>
+
+                {product.isCustomizable && !cartItem && (
+                  <button onClick={() => navigate(`/customize/${product._id}`)}
+                    style={{ width: '100%', padding: '8px', borderRadius: 9, background: '#FBF5E8', color: '#D4A96A', border: '1.5px solid #F0E0BE', cursor: 'pointer', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    ✨ Customize & Order
+                  </button>
+                )}
               </div>
             );
           })}
@@ -306,7 +385,7 @@ export default function Store() {
             <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: '#1C3A18', marginBottom: 6 }}>Delivery details</h2>
             <p style={{ fontSize: 13, color: '#7A8A75', marginBottom: 24 }}>Total: ₹{cartTotal} · {cartCount} items</p>
 
-            <form onSubmit={handlePlaceOrder} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); handlePlaceOrder(e); }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[
                 { label: 'Recipient name *', key: 'recipientName', type: 'text', placeholder: 'Who is this for?' },
                 { label: 'Recipient phone *', key: 'recipientPhone', type: 'tel', placeholder: '+91 98765 43210' },
@@ -327,7 +406,11 @@ export default function Store() {
                     style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: '1.5px solid #D4DEAD', background: '#FDFCFA', color: '#1C3A18', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               ))}
-
+              {orderError && (
+                <div style={{ background: '#FDF0EE', border: '1px solid #F0C5BE', color: '#A04030', fontSize: 13, padding: '10px 14px', borderRadius: 10 }}>
+                  {orderError}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                 <button type="button" onClick={() => setShowCheckout(false)}
                   style={{ flex: 1, padding: 12, borderRadius: 10, background: '#F7F4EF', color: '#7A8A75', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>

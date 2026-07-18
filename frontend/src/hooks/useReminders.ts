@@ -40,6 +40,11 @@ export const useReminders = () => {
     setReminders(prev => prev.filter(r => r._id !== id));
   };
 
+  const syncHolidays = async () => {
+    await api.post('/reminders/sync-holidays');
+    fetchReminders();
+  };
+
   const toggleComplete = async (id: string, isCompleted: boolean) => {
     const res = await api.put(`/reminders/${id}`, { isCompleted });
     setReminders(prev => prev.map(r => r._id === id ? res.data.reminder : r));
@@ -52,5 +57,5 @@ export const useReminders = () => {
 
   useEffect(() => { fetchReminders(); }, []);
 
-  return { reminders, loading, addReminder, deleteReminder, toggleComplete, syncReminders, fetchReminders };
+  return { reminders, loading, addReminder, deleteReminder, toggleComplete, syncReminders, syncHolidays,  fetchReminders };
 };

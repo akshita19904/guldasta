@@ -17,7 +17,7 @@ const typeConfig: Record<string, { color: string; bg: string; label: string }> =
 
 export default function Celebrations() {
   const navigate = useNavigate();
-  const { reminders, loading, addReminder, deleteReminder, toggleComplete, syncReminders } = useReminders();
+  const { reminders, loading, addReminder, deleteReminder, toggleComplete, syncReminders , syncHolidays } = useReminders();
   const { people } = usePeople();
 
   const [view, setView] = useState<'timeline' | 'calendar'>('timeline');
@@ -246,7 +246,7 @@ export default function Celebrations() {
                 return (
                   <div key={day} onClick={() => setSelectedDay(isSelected ? null : day)}
                     style={{
-                      aspectRatio: '1', borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                      aspectRatio: '1', maxHeight: 56, borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                       background: isSelected ? '#2D5A27' : isToday ? '#EEF4EC' : 'transparent',
                       border: isToday && !isSelected ? '2px solid #4A7C3F' : '2px solid transparent',
                       transition: 'all 0.15s'

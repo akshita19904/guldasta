@@ -78,6 +78,71 @@ export const sendReminderEmail = async (
   await transporter.sendMail(mailOptions);
 };
 
+export const sendCatchUpReminderEmail = async (
+  toEmail: string,
+  toName: string,
+  reminderTitle: string,
+  daysAgo: number,
+  personName: string
+) => {
+  const mailOptions = {
+    from: `"Guldasta 🌿" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: `You may have missed: ${reminderTitle}`,
+    html: `
+    <div style="font-family: 'DM Sans', Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #F7F4EF; padding: 0; border-radius: 16px; overflow: hidden;">
+
+      <div style="background: linear-gradient(135deg, #2D5A27, #4A7C3F); padding: 32px; text-align: center;">
+        <h1 style="font-family: Georgia, serif; color: white; font-size: 28px; margin: 0; font-weight: normal;">
+          Gul<em style="color: #D4B978;">dasta</em>
+        </h1>
+        <p style="color: rgba(255,255,255,0.7); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 6px 0 0;">
+          Relationship Assistant
+        </p>
+      </div>
+
+      <div style="padding: 32px;">
+        <p style="font-size: 16px; color: #1C3A18; margin: 0 0 8px;">Hey ${toName}, 👋</p>
+        <h2 style="font-family: Georgia, serif; font-size: 22px; color: #1C3A18; margin: 0 0 16px; font-weight: normal;">
+          Just checking in — ${reminderTitle} ${daysAgo === 0 ? 'was today' : `was ${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`}
+        </h2>
+
+        <p style="font-size: 14px; color: #4A5E45; line-height: 1.7; margin-bottom: 24px;">
+          It's not too late to make <strong>${personName}</strong> feel special. A thoughtful message or gift,
+          even a little late, still means a lot.
+        </p>
+
+        <div style="text-align: center; margin-bottom: 28px;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/gifts"
+             style="display: inline-block; background: linear-gradient(135deg, #2D5A27, #4A7C3F); color: white; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-size: 14px; font-weight: 500;">
+            Find a gift now →
+          </a>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/messages"
+             style="display: inline-block; background: #EEF4EC; color: #2D5A27; text-decoration: none; padding: 10px 20px; border-radius: 10px; font-size: 13px;">
+            Write a message
+          </a>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/reminders"
+             style="display: inline-block; background: #EEF4EC; color: #2D5A27; text-decoration: none; padding: 10px 20px; border-radius: 10px; font-size: 13px;">
+            View all reminders
+          </a>
+        </div>
+      </div>
+
+      <div style="padding: 20px 32px; border-top: 1px solid #E8E2DA; text-align: center;">
+        <p style="font-size: 12px; color: #8A9E85; margin: 0;">
+          Sent with love by Guldasta · Your relationship assistant
+        </p>
+      </div>
+    </div>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 export const sendWelcomeEmail = async (toEmail: string, toName: string) => {
   const mailOptions = {
     from: `"Guldasta 🌿" <${process.env.EMAIL_USER}>`,
