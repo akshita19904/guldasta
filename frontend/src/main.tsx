@@ -13,6 +13,7 @@ import Messages from './pages/Messages'
 import Store from './pages/Store'
 import Customize from './pages/Customize'
 import Orders from './pages/Orders'
+import Settings from './pages/Settings'
 import AdminOverview from './pages/AdminOverview'
 import AdminOrders from './pages/AdminOrders'
 
@@ -37,12 +38,13 @@ const App = () => (
         <Route path="/celebrations" element={<ProtectedRoute><Celebrations /></ProtectedRoute>} />
         <Route path="/gifts" element={<ProtectedRoute><Gifts /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
         <Route path="/customize/:id" element={<ProtectedRoute><Customize /></ProtectedRoute>} />
         <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/admin/overview" element={<ProtectedRoute><AdminOverview /></ProtectedRoute>} />
         <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </AuthProvider>
   </BrowserRouter>
