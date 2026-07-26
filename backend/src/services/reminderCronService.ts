@@ -84,6 +84,12 @@ export async function runReminderCheck(): Promise<{
         toName = user.name || 'there';
       }
 
+      // Respect user notification preference
+      if (user && user.notificationsEnabled === false) {
+        await reminder.save();
+        continue;
+      }
+
       if (reminder.personId) {
         const person = await Person.findById(reminder.personId);
         if (person) personName = person.name;

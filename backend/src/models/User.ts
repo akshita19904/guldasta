@@ -6,6 +6,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   avatar?: string;
+  notificationsEnabled: boolean;
   createdAt: Date;
   comparePassword(password: string): Promise<boolean>;
 }
@@ -35,7 +36,11 @@ const UserSchema = new Schema<IUser>({
   avatar: {
     type: String,
     default: ''
-  }
+  },
+  notificationsEnabled: {
+    type: Boolean,
+    default: true,
+  },
 }, { timestamps: true });
 
 UserSchema.pre('save', async function() {
