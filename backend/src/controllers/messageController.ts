@@ -38,7 +38,7 @@ Write ONLY the message text. No subject line, no explanation, just the message.`
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const completion = await groq.chat.completions.create({
-      model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+      model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.85,
       max_tokens: 500,
@@ -81,7 +81,7 @@ Return ONLY a raw JSON array, no markdown:
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const completion = await groq.chat.completions.create({
-      model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+      model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.85,
       max_tokens: 1000,

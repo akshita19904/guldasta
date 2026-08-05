@@ -81,7 +81,7 @@ Every Groq API call (gift suggestions, single messages, multi-messages) is logge
 | Frontend | React 18 + TypeScript + Tailwind CSS |
 | Backend | Node.js + Express + TypeScript |
 | Database | MongoDB Atlas (Mongoose ODM) |
-| AI | Groq — `llama-3.1-8b-instant` (configurable via `GROQ_MODEL`) |
+| AI | Groq — `openai/gpt-oss-120b` (configurable via `GROQ_MODEL`) |
 | Email | Nodemailer (Gmail SMTP) |
 | Scheduling | node-cron (in-process) |
 | Images | Pexels API (CDN URLs stored in DB) |
@@ -165,7 +165,7 @@ Create `backend/.env`:
 MONGO_URI=your_mongodb_atlas_connection_string
 JWT_SECRET=your_jwt_secret_key
 GROQ_API_KEY=your_groq_api_key
-GROQ_MODEL=llama-3.1-8b-instant
+GROQ_MODEL=openai/gpt-oss-120b
 EMAIL_USER=your_gmail@gmail.com
 EMAIL_PASS=your_gmail_app_password
 ADMIN_EMAILS=your_admin_email@gmail.com
