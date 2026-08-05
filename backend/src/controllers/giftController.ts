@@ -163,7 +163,7 @@ Return ONLY a raw JSON array, no markdown:
     try {
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
       const completion = await groq.chat.completions.create({
-        model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.6,
         max_tokens: 1500,
