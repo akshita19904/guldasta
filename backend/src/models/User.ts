@@ -7,6 +7,8 @@ export interface IUser extends Document {
   password: string;
   avatar?: string;
   notificationsEnabled: boolean;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   comparePassword(password: string): Promise<boolean>;
 }
@@ -40,6 +42,12 @@ const UserSchema = new Schema<IUser>({
   notificationsEnabled: {
     type: Boolean,
     default: true,
+  },
+  resetPasswordToken: {
+    type: String,
+  },
+  resetPasswordExpires: {
+    type: Date,
   },
 }, { timestamps: true });
 

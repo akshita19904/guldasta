@@ -182,3 +182,43 @@ export const sendWelcomeEmail = async (toEmail: string, toName: string) => {
 
   await transporter.sendMail(mailOptions);
 };
+
+export const sendPasswordResetEmail = async (toEmail: string, resetUrl: string, userName: string) => {
+  const mailOptions = {
+    from: `"Guldasta 🌿" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: 'Reset your Guldasta Password 🔑',
+    html: `
+    <div style="font-family: 'DM Sans', Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #F7F4EF; border-radius: 16px; overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #2D5A27, #4A7C3F); padding: 32px; text-align: center;">
+        <h1 style="font-family: Georgia, serif; color: white; font-size: 28px; margin: 0; font-weight: normal;">
+          Gul<em style="color: #D4B978;">dasta</em>
+        </h1>
+        <p style="color: rgba(255,255,255,0.7); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin: 6px 0 0;">
+          Password Reset
+        </p>
+      </div>
+
+      <div style="padding: 32px;">
+        <p style="font-size: 16px; color: #1C3A18; margin: 0 0 8px;">Hello ${userName || 'there'}, 👋</p>
+        <p style="font-size: 14px; color: #4A5E45; line-height: 1.7; margin-bottom: 24px;">
+          You requested to reset your password for your Guldasta account. Click the button below to choose a new password. This link will expire in 1 hour.
+        </p>
+
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="${resetUrl}" 
+             style="display: inline-block; background: linear-gradient(135deg, #2D5A27, #4A7C3F); color: white; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-size: 14px; font-weight: 500;">
+            Reset Password →
+          </a>
+        </div>
+
+        <p style="font-size: 12px; color: #7A8A75; line-height: 1.6;">
+          If you didn't request this email, you can safely ignore it. Your password will remain unchanged.
+        </p>
+      </div>
+    </div>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
