@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Search, Plus, Minus, X, ChevronRight, Sparkles } from 'lucide-react';
+import { ShoppingBag, Search, Plus, Minus, X, ChevronRight, Sparkles, Loader } from 'lucide-react';
 import Layout from '../components/Layout';
 import api from '../utils/api';
 
@@ -55,6 +55,7 @@ export default function Store() {
   });
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<{
     id: string;
     deliveryDate: string;
@@ -171,6 +172,7 @@ export default function Store() {
       return;
     }
 
+    setIsSubmittingOrder(true);
     try {
       const res = await api.post('/orders', {
         items: cart.map(item => ({ productId: item._id, name: item.name, price: item.price, quantity: item.quantity })),
@@ -192,6 +194,8 @@ export default function Store() {
     } catch (err: any) {
       console.error(err);
       setOrderError(err.response?.data?.message || 'Failed to place order. Please try again.');
+    } finally {
+      setIsSubmittingOrder(false);
     }
   };
 
@@ -427,13 +431,20 @@ export default function Store() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                <button type="button" onClick={() => setShowCheckout(false)}
-                  style={{ flex: 1, padding: 12, borderRadius: 10, background: '#F7F4EF', color: '#7A8A75', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>
+                <button type="button" onClick={() => setShowCheckout(false)} disabled={isSubmittingOrder}
+                  style={{ flex: 1, padding: 12, borderRadius: 10, background: '#F7F4EF', color: '#7A8A75', border: 'none', cursor: isSubmittingOrder ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 500, opacity: isSubmittingOrder ? 0.6 : 1 }}>
                   Cancel
                 </button>
-                <button type="submit"
-                  style={{ flex: 1, padding: 12, borderRadius: 10, background: 'linear-gradient(135deg, #2D5A27, #4A7C3F)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>
-                  Place order
+                <button type="submit" disabled={isSubmittingOrder}
+                  style={{ flex: 1, padding: 12, borderRadius: 10, background: isSubmittingOrder ? '#8A9E85' : 'linear-gradient(135deg, #2D5A27, #4A7C3F)', color: 'white', border: 'none', cursor: isSubmittingOrder ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {isSubmittingOrder ? (
+                    <>
+                      <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      Placing order...
+                    </>
+                  ) : (
+                    'Place order'
+                  )}
                 </button>
               </div>
             </form>

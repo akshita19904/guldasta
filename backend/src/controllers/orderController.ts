@@ -22,8 +22,12 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       deliveryAddress, deliveryDate, giftMessage
     });
 
-    // Notify admin via email (non-blocking — don't fail order if email fails)
-    try {
+    // Respond IMMEDIATELY to frontend once order is created in database
+    res.status(201).json({ success: true, order });
+
+    // Non-blocking admin notification in background (does not block HTTP response)
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const itemsList = items.map((i: any) => `${i.name} x${i.quantity} (₹${i.price * i.quantity})`).join('<br>');
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -32,9 +36,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
         },
       });
 
-      const itemsList = items.map((i: any) => `${i.name} x${i.quantity} (₹${i.price * i.quantity})`).join('<br>');
-
-      await transporter.sendMail({
+      transporter.sendMail({
         from: `"Guldasta Orders" <${process.env.EMAIL_USER}>`,
         to: process.env.EMAIL_USER,
         subject: `New order — ${recipientName} — ₹${totalAmount}`,
@@ -49,14 +51,12 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
           <p><strong>Total:</strong> ₹${totalAmount}</p>
           ${giftMessage ? `<p><strong>Gift message:</strong> "${giftMessage}"</p>` : ''}
         `
-      });
-    } catch (emailError) {
-      console.log('Order email notification failed:', emailError);
+      }).catch(emailError => console.log('Order email notification failed in background:', emailError));
     }
-
-    res.status(201).json({ success: true, order });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
 };
 
