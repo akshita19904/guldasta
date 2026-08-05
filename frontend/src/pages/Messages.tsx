@@ -304,7 +304,21 @@ export default function Messages() {
                         <button onClick={() => {
                           const subject = encodeURIComponent('Gift Message');
                           const body = encodeURIComponent(text);
-                          window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                          
+                          // Copy message to clipboard for safety
+                          navigator.clipboard.writeText(text);
+
+                          // Trigger mailto protocol via anchor link
+                          const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
+                          const link = document.createElement('a');
+                          link.href = mailtoUrl;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+
+                          // Also open Gmail Webmail in a new tab as a reliable web fallback
+                          const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${subject}&body=${body}`;
+                          window.open(gmailUrl, '_blank', 'noopener,noreferrer');
                         }}
                           style={{ flex: 1, padding: '9px', borderRadius: 10, background: '#F7F4EF', border: 'none', cursor: 'pointer', fontSize: 12, color: '#4A5E45', fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>
                           Open in Email
