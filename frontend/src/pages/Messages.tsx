@@ -294,14 +294,17 @@ export default function Messages() {
 
                       {/* Share options */}
                       <div style={{ display: 'flex', gap: 8, marginTop: 16, paddingTop: 16, borderTop: '1px solid #F0EBE3' }}>
-                        <button onClick={() => copyMessage(text, i)}
+                        <button onClick={() => {
+                          const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                          window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+                        }}
                           style={{ flex: 1, padding: '9px', borderRadius: 10, background: '#EEF4EC', border: 'none', cursor: 'pointer', fontSize: 12, color: '#2D5A27', fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>
-                          Copy for WhatsApp
+                          Share on WhatsApp
                         </button>
                         <button onClick={() => {
-                          const subject = encodeURIComponent(`${occasion} wishes`);
+                          const subject = encodeURIComponent('Gift Message');
                           const body = encodeURIComponent(text);
-                          window.open(`mailto:?subject=${subject}&body=${body}`);
+                          window.location.href = `mailto:?subject=${subject}&body=${body}`;
                         }}
                           style={{ flex: 1, padding: '9px', borderRadius: 10, background: '#F7F4EF', border: 'none', cursor: 'pointer', fontSize: 12, color: '#4A5E45', fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>
                           Open in Email

@@ -55,7 +55,12 @@ export default function Store() {
   });
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [completedOrder, setCompletedOrder] = useState<{
+    id: string;
+    deliveryDate: string;
+    recipientName: string;
+    totalAmount: number;
+  } | null>(null);
   const [highlightedProduct, setHighlightedProduct] = useState<string | null>(null);
   const [orderError, setOrderError] = useState('');
   const [checkout, setCheckout] = useState({
@@ -71,6 +76,11 @@ export default function Store() {
   }, [cart]);
 
   useEffect(() => {
+    const catParam = searchParams.get('category');
+    if (catParam && categories.includes(catParam)) {
+      setCategory(catParam);
+    }
+
     if (searchParams.get('reorder') === 'true') {
       const reorderData = sessionStorage.getItem('guldasta_reorder_cart');
       if (reorderData) {
@@ -101,7 +111,7 @@ export default function Store() {
       }, 500);
       setTimeout(() => setHighlightedProduct(null), 3000);
     }
-  }, []);
+  }, [searchParams]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -155,15 +165,30 @@ export default function Store() {
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setOrderError('');
+
+    if (!checkout.recipientName.trim() || !checkout.recipientPhone.trim() || !checkout.deliveryAddress.trim() || !checkout.deliveryDate.trim()) {
+      setOrderError('Please fill in all required fields (*).');
+      return;
+    }
+
     try {
-      await api.post('/orders', {
+      const res = await api.post('/orders', {
         items: cart.map(item => ({ productId: item._id, name: item.name, price: item.price, quantity: item.quantity })),
         ...checkout
       });
-      setOrderSuccess(true);
+
+      const createdOrder = res.data.order;
+      setCompletedOrder({
+        id: createdOrder._id || createdOrder.id || 'CONFIRMED',
+        deliveryDate: createdOrder.deliveryDate || checkout.deliveryDate,
+        recipientName: createdOrder.recipientName || checkout.recipientName,
+        totalAmount: createdOrder.totalAmount || cartTotal,
+      });
+
       setCart([]);
+      localStorage.removeItem('guldasta_cart');
       setShowCheckout(false);
-      setTimeout(() => setOrderSuccess(false), 4000);
+      setCheckout({ recipientName: '', recipientPhone: '', deliveryAddress: '', deliveryDate: '', giftMessage: '' });
     } catch (err: any) {
       console.error(err);
       setOrderError(err.response?.data?.message || 'Failed to place order. Please try again.');
@@ -190,16 +215,6 @@ export default function Store() {
           )}
         </button>
       </div>
-
-      {/* Order success banner */}
-      {orderSuccess && (
-        <div style={{ background: 'linear-gradient(135deg, #EEF4EC, #F0F7EE)', border: '1px solid #B5CEB0', borderRadius: 16, padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Sparkles size={20} color="#2D5A27" />
-          <p style={{ fontSize: 14, color: '#2D5A27', fontWeight: 500, margin: 0 }}>
-            Order placed! We'll confirm via WhatsApp shortly. Check "My Orders" to track it.
-          </p>
-        </div>
-      )}
 
       {/* Search + Categories */}
       <div style={{ marginBottom: 24 }}>
@@ -422,6 +437,63 @@ export default function Store() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Order Confirmation Modal */}
+      {completedOrder && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,58,24,0.5)', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setCompletedOrder(null)}>
+          <div style={{ background: 'white', borderRadius: 20, padding: 32, width: '100%', maxWidth: 460, textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}
+            onClick={e => e.stopPropagation()}>
+
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#EEF4EC', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Sparkles size={32} color="#2D5A27" />
+            </div>
+
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: '#1C3A18', marginBottom: 8 }}>
+              🎉 Order placed successfully!
+            </h2>
+            <p style={{ fontSize: 14, color: '#7A8A75', lineHeight: 1.6, marginBottom: 20 }}>
+              Your gift has been scheduled and your order has been confirmed.
+            </p>
+
+            <div style={{ background: '#F7F4EF', borderRadius: 14, padding: 18, marginBottom: 24, textAlign: 'left', border: '1px solid #E8E2DA' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                <span style={{ color: '#7A8A75' }}>Order ID</span>
+                <span style={{ color: '#1C3A18', fontWeight: 600, fontFamily: 'monospace' }}>
+                  #{completedOrder.id.length > 8 ? completedOrder.id.slice(-8).toUpperCase() : completedOrder.id}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                <span style={{ color: '#7A8A75' }}>Recipient</span>
+                <span style={{ color: '#1C3A18', fontWeight: 500 }}>{completedOrder.recipientName}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                <span style={{ color: '#7A8A75' }}>Delivery Date</span>
+                <span style={{ color: '#2D5A27', fontWeight: 600 }}>
+                  {new Date(completedOrder.deliveryDate).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid #E8E2DA', fontSize: 14 }}>
+                <span style={{ color: '#1C3A18', fontWeight: 500 }}>Total Paid</span>
+                <span style={{ color: '#2D5A27', fontWeight: 600, fontFamily: "'Playfair Display', serif" }}>
+                  ₹{completedOrder.totalAmount}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setCompletedOrder(null)}
+                style={{ flex: 1, padding: '12px', borderRadius: 12, background: '#EEF4EC', color: '#2D5A27', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>
+                Continue Shopping
+              </button>
+              <button onClick={() => { setCompletedOrder(null); navigate('/orders'); }}
+                style={{ flex: 1, padding: '12px', borderRadius: 12, background: 'linear-gradient(135deg, #2D5A27, #4A7C3F)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>
+                View Orders
+              </button>
+            </div>
           </div>
         </div>
       )}

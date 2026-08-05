@@ -454,7 +454,7 @@ export default function Gifts() {
                         </div>
 
                         <button
-                          onClick={() => navigate(gift.isCustomizable ? `/customize/${gift.productId}` : `/store?highlight=${gift.productId}`)}
+                          onClick={() => navigate(gift.isCustomizable ? `/customize/${gift.productId}` : `/store?category=${encodeURIComponent(gift.category)}&highlight=${gift.productId}`)}
                           style={{ width: '100%', padding: '10px', borderRadius: 10, background: 'linear-gradient(135deg, #2D5A27, #4A7C3F)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
                          {gift.isCustomizable ? 'Customize & Order →' : 'View in Store →'}
                         </button>
