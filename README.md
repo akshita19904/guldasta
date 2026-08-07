@@ -17,41 +17,41 @@ Built as a full-stack project by [Akshita Sarda](https://github.com/akshita19904
 
 ## Features
 
-### 👥 People & Relationship Management
+###  People & Relationship Management
 Add people to your circle with relationship type, birthday, anniversary, interests, age, gender, and freeform notes. Every other feature pulls from this context.
 
-### 📝 Relationship Memory (Notes)
+###  Relationship Memory (Notes)
 A lightweight journal per person. Notes feed directly into AI prompts so suggestions feel specific — not generic.
 
-### 🎁 AI Gift Suggestions
+###  AI Gift Suggestions
 A two-stage pipeline:
 1. **Scoring engine** ranks all in-stock products using 7 weighted dimensions: interest match (with synonym expansion), budget fit, occasion fit, relationship affinity, gender/age fit, past gift penalty, and platform popularity.
 2. **Groq LLaMA** (`openai/gpt-oss-120b`) personalises the top 10 scored results — writing a specific "why this suits them" reason for each.
 
 Suggestions only pick from real catalog products, never invented items. Falls back gracefully if AI is unavailable.
 
-### ✍️ AI Messages
+###  AI Messages
 Generate personalised messages in 4 tones — warm, funny, poetic, or short — using the person's name, relationship, interests, and any extra context you provide. Includes one-click **Share on WhatsApp** and **Open in Email** integrations.
 
-### 🛍️ Gift Store & Fast Order Confirmation
+###  Gift Store & Fast Order Confirmation
 73+ products across 7 categories: Bouquets, Hampers, Experiences, Cakes, Personalised, Plants, Combos. Each with real product images (Pexels CDN), rich descriptions, and semantic tags. Includes:
 - Cart with persistent localStorage
 - Optimistic order placement UX with non-blocking async background email processing (~30ms response time)
 - Dedicated Order Confirmation modal with order ID, delivery date, and total paid summary
 - One-click category tab auto-selection & highlighted product scroll from Gifts view
 
-### 🔐 Password Reset & Security Flow
+###  Password Reset & Security Flow
 - Secure JWT-based stateless authentication
 - Password hashing with Bcrypt ($2^{12}$ salt rounds)
 - Full **Forgot Password / Password Reset** workflow via single-use SHA-256 hashed tokens and 1-hour expiration timers with branded HTML email templates
 
-### ⏰ Celebrations & Reminders
+###  Celebrations & Reminders
 A unified Celebrations page with timeline and month-grid views. Reminders from three sources:
 - **Auto-synced** from People (birthdays, anniversaries)
 - **Custom** reminders (any date, any title)
 - **Indian holiday sync** (Republic Day, Holi, Diwali, etc.)
 
-### 📧 Cron-Based Reminder Emails
+###  Cron-Based Reminder Emails
 A daily midnight cron job (`node-cron`) sends three types of emails:
 
 | Type | Trigger |
@@ -62,7 +62,7 @@ A daily midnight cron job (`node-cron`) sends three types of emails:
 
 Tracks sent/not-sent per reminder per year via `advanceNotifSent`, `sameDayNotifSent`, and `notifYear` fields — so recurring birthday reminders reset correctly each year.
 
-### 📊 Admin Console
+###  Admin Console
 Gated by an email allow-list (`ADMIN_EMAILS` env var). Includes:
 - **Orders** — view all orders, filter by status, advance through pipeline (`pending` → `confirmed` → `preparing` → `out_for_delivery` → `delivered`), cancel
 - **Analytics dashboard** — total users, orders, revenue, best-selling products, most popular categories, AI usage by type with success rates, 6-month orders trend
@@ -193,13 +193,7 @@ This seeds 73+ products with real Pexels images. Safe to re-run — uses upsert 
 
 ## Roadmap
 
-- [x] Forgot password / email reset flow
+- [ ] Forgot password / email reset flow
 - [ ] Embeddings + semantic person-profile similarity (HuggingFace `all-MiniLM-L6-v2`)
 - [ ] MongoDB Atlas Vector Search
 - [ ] Upgrade Render to always-on instance for reliable cron
-
----
-
-## License
-
-MIT
